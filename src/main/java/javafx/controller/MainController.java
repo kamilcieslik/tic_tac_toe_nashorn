@@ -8,10 +8,10 @@ import javafx.scene.control.*;
 import javafx.scene.layout.Pane;
 import javafx.util.StringConverter;
 import jdk.nashorn.api.scripting.ScriptUtils;
-import manager.GameManager;
-import model.CheckResult;
-import model.Field;
-import strategy.ComputerStrategy;
+import tic_tac_toe.MovementExecutor;
+import tic_tac_toe.model.CheckResult;
+import tic_tac_toe.model.Field;
+import tic_tac_toe.strategy.ComputerStrategy;
 
 
 import javax.script.ScriptEngine;
@@ -21,10 +21,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -32,7 +29,7 @@ public class MainController implements Initializable {
     private static CustomMessageBox customMessageBox;
 
     private List<ComputerStrategy> computerStrategies;
-    public static GameManager gameManager = new GameManager();
+    public static MovementExecutor movementExecutor = new MovementExecutor();
 
     public static boolean playable = true;
     public static Field[][] board = new Field[5][5];
@@ -55,12 +52,12 @@ public class MainController implements Initializable {
 
         computerStrategies = new ArrayList<>();
 
-        gameManager.startGame();
+        movementExecutor.startGame();
 
         loadComputerStrategies(new File("src/main/resources/js"));
         comboBoxStrategies.getItems().addAll(computerStrategies);
         comboBoxStrategies.getSelectionModel().select(0);
-        gameManager.setComputerStrategy(comboBoxStrategies.getSelectionModel().getSelectedItem());
+        movementExecutor.setComputerStrategy(comboBoxStrategies.getSelectionModel().getSelectedItem());
 
         comboBoxStrategies.setCellFactory(listView -> new ListCell<ComputerStrategy>() {
             @Override
@@ -96,7 +93,7 @@ public class MainController implements Initializable {
             }
         }
 
-        if (gameManager.getGameBoard().getNumberOfEmptyPlaces() == 0) {
+        if (movementExecutor.getGameBoard().getNumberOfEmptyPlaces() == 0) {
             playable = false;
             customMessageBox.showMessageBox(Alert.AlertType.INFORMATION, "Informacja końcowa",
                     "Rozgrywka zakończona",
@@ -126,11 +123,11 @@ public class MainController implements Initializable {
             }
         }
 
-        gameManager.startGame();
+        movementExecutor.startGame();
     }
 
     public void comboBoxStrategies_onAction() {
-        gameManager.setComputerStrategy(comboBoxStrategies.getSelectionModel().getSelectedItem());
+        movementExecutor.setComputerStrategy(comboBoxStrategies.getSelectionModel().getSelectedItem());
     }
 
     private void initBoard() {
@@ -156,9 +153,7 @@ public class MainController implements Initializable {
 
     private void loadComputerStrategies(File directory) {
         File[] scriptFiles = directory.listFiles();
-        System.out.println(Arrays.toString(scriptFiles));
-        assert scriptFiles != null;
-        computerStrategies = Stream.of(scriptFiles)
+        computerStrategies = Stream.of(Objects.requireNonNull(scriptFiles))
                 .map(file -> {
                     try {
                         return getComputerStrategy(file);

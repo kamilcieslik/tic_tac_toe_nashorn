@@ -1,4 +1,4 @@
-package model;
+package tic_tac_toe.model;
 
 import java.util.Objects;
 

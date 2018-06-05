@@ -1,19 +1,19 @@
-package manager;
+package tic_tac_toe;
 
 
-import model.Board;
-import model.BoardPosition;
-import strategy.ComputerStrategy;
+import tic_tac_toe.model.Board;
+import tic_tac_toe.model.BoardPosition;
+import tic_tac_toe.strategy.ComputerStrategy;
 
 import static javafx.controller.MainController.board;
 
-public class GameManager {
+public class MovementExecutor {
 
     private ComputerStrategy computerStrategy;
 
     private Board gameBoard;
 
-    public GameManager() {
+    public MovementExecutor() {
 
     }
 

@@ -1,5 +1,5 @@
-var ComputerStrategy = Java.type("strategy.ComputerStrategy");
-var BoardPosition = Java.type("model.BoardPosition");
+var ComputerStrategy = Java.type("tic_tac_toe.strategy.ComputerStrategy");
+var BoardPosition = Java.type("tic_tac_toe.model.BoardPosition");
 
 var RandomAI = Java.extend(ComputerStrategy, {
     getNextAIMove: function (boardSituation) {

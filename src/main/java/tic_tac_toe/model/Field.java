@@ -1,4 +1,4 @@
-package model;
+package tic_tac_toe.model;
 
 import javafx.geometry.Pos;
 import javafx.scene.input.MouseButton;
@@ -37,11 +37,11 @@ public class Field extends StackPane {
                     return;
 
                 drawX();
-                gameManager.executePlayerMove(new BoardPosition(this.x,this.y));
+                movementExecutor.executePlayerMove(new BoardPosition(this.x,this.y));
                 checkState();
 
                 if (playable){
-                    gameManager.executeAIMove();
+                    movementExecutor.executeAIMove();
                     checkState();
                 }
             }

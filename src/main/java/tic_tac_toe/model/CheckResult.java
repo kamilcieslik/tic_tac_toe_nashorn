@@ -1,4 +1,4 @@
-package model;
+package tic_tac_toe.model;
 
 public class CheckResult {
     public Field[] fields;
