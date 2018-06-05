@@ -2,57 +2,42 @@ package manager;
 
 
 import model.Board;
-import model.BoardEntity;
 import model.BoardPosition;
-import move.MoveStrategy;
+import strategy.ComputerStrategy;
 
 import static javafx.controller.MainController.board;
 
 public class GameManager {
 
-    private MoveStrategy enemyMoveStrategy;
+    private ComputerStrategy computerStrategy;
 
     private Board gameBoard;
 
-    private int boardSize = 5;
-
-    private BoardEntity playerEntity = BoardEntity.X;
-
-    private BoardEntity aiEntity = BoardEntity.O;
-
-
     public GameManager() {
 
-    }
-
-    public void setBoardSize(int boardSize) {
-        this.boardSize = boardSize;
     }
 
     public Board getGameBoard() {
         return gameBoard;
     }
 
-    public void startNewGame() {
+    public void startGame() {
+        int boardSize = 5;
         this.gameBoard = new Board(boardSize);
     }
 
     public void executePlayerMove(BoardPosition boardPosition){
-        gameBoard.setEntityAt(boardPosition, playerEntity);
+        gameBoard.setSymbol(boardPosition, "X");
     }
 
-    public void executeAiMove() {
-        BoardPosition boardPosition = enemyMoveStrategy.nextMove(aiEntity, gameBoard);
-        gameBoard.setEntityAt(boardPosition, aiEntity);
+    public void executeAIMove() {
+        BoardPosition boardPosition = computerStrategy.getNextAIMove(gameBoard);
+        gameBoard.setSymbol(boardPosition, "O");
         board[boardPosition.getX()][boardPosition.getY()].drawO();
     }
 
-    public int getNumbersOfEmptyPlaces(){
-        return gameBoard.getNumberOfEmptyPlaces();
-    }
-
-    public void setEnemyMoveStrategy(MoveStrategy enemyMoveStrategy) {
-        this.enemyMoveStrategy = enemyMoveStrategy;
+    public void setComputerStrategy(ComputerStrategy computerStrategy) {
+        this.computerStrategy = computerStrategy;
     }
 }
 

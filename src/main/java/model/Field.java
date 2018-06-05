@@ -1,6 +1,5 @@
 package model;
 
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.StackPane;
@@ -9,17 +8,15 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 
-import static javafx.controller.MainController.checkState;
-import static javafx.controller.MainController.gameManager;
-import static javafx.controller.MainController.playable;
+import static javafx.controller.MainController.*;
 
 
-public class Tile extends StackPane {
+public class Field extends StackPane {
     private int x;
     private int y;
     private Text text = new Text();
 
-    public Tile(int x, int y) {
+    public Field(int x, int y) {
         this.x = x;
         this.y= y;
         Rectangle border = new Rectangle(80, 80);
@@ -36,7 +33,7 @@ public class Tile extends StackPane {
                 return;
 
             if (event.getButton() == MouseButton.PRIMARY) {
-                if (getValue().equals("X")||getValue().equals("O"))
+                if (getSymbolValue().equals("X")|| getSymbolValue().equals("O"))
                     return;
 
                 drawX();
@@ -44,22 +41,14 @@ public class Tile extends StackPane {
                 checkState();
 
                 if (playable){
-                    gameManager.executeAiMove();
+                    gameManager.executeAIMove();
                     checkState();
                 }
             }
         });
     }
 
-    public double getCenterX() {
-        return getTranslateX() + 40;
-    }
-
-    public double getCenterY() {
-        return getTranslateY() + 40;
-    }
-
-    public String getValue() {
+    public String getSymbolValue() {
         return text.getText();
     }
 
@@ -67,7 +56,6 @@ public class Tile extends StackPane {
         text.setStyle("-fx-stroke: Black;");
         text.setFill(Color.web("268798"));
         text.setText("X");
-
     }
 
     public void drawO() {

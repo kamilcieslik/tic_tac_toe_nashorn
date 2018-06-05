@@ -2,26 +2,24 @@ package javafx.controller;
 
 
 import javafx.CustomMessageBox;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.layout.Pane;
-import javafx.scene.shape.Line;
-import javafx.util.Duration;
 import javafx.util.StringConverter;
+import jdk.nashorn.api.scripting.ScriptUtils;
 import manager.GameManager;
-import model.Combo;
-import model.Tile;
-import move.MoveStrategy;
-import move.MoveStrategyFromJSFile;
+import model.CheckResult;
+import model.Field;
+import strategy.ComputerStrategy;
 
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,23 +31,21 @@ import java.util.stream.Stream;
 public class MainController implements Initializable {
     private static CustomMessageBox customMessageBox;
 
-    private List<MoveStrategy> computerStrategies;
-    private MoveStrategyFromJSFile mover;
+    private List<ComputerStrategy> computerStrategies;
     public static GameManager gameManager = new GameManager();
 
     public static boolean playable = true;
-    public static Tile[][] board = new Tile[5][5];
-    private static List<Combo> combos = new ArrayList<>();
+    public static Field[][] board = new Field[5][5];
+    private static List<CheckResult> checkResults = new ArrayList<>();
 
     @FXML
     public Pane flowPaneGameBoard;
-    private static Pane root;
 
     @FXML
     public Button buttonRestart;
 
     @FXML
-    public ComboBox<MoveStrategy> comboBoxStrategies;
+    public ComboBox<ComputerStrategy> comboBoxStrategies;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -57,49 +53,45 @@ public class MainController implements Initializable {
 
         initBoard();
 
-        root = new Pane();
-        flowPaneGameBoard.getChildren().add(root);
-
         computerStrategies = new ArrayList<>();
 
-        gameManager.startNewGame();
-        mover = new MoveStrategyFromJSFile();
+        gameManager.startGame();
 
-        loadFromDirectory(new File("src/main/resources/js"));
+        loadComputerStrategies(new File("src/main/resources/js"));
         comboBoxStrategies.getItems().addAll(computerStrategies);
         comboBoxStrategies.getSelectionModel().select(0);
-        gameManager.setEnemyMoveStrategy(comboBoxStrategies.getSelectionModel().getSelectedItem());
+        gameManager.setComputerStrategy(comboBoxStrategies.getSelectionModel().getSelectedItem());
 
-        comboBoxStrategies.setCellFactory(listView -> new ListCell<MoveStrategy>() {
+        comboBoxStrategies.setCellFactory(listView -> new ListCell<ComputerStrategy>() {
             @Override
-            protected void updateItem(MoveStrategy strategy, boolean empty) {
+            protected void updateItem(ComputerStrategy strategy, boolean empty) {
                 super.updateItem(strategy, empty);
                 if (strategy == null || empty) {
                     setGraphic(null);
                 } else {
-                    setText(strategy.getIdentifier());
+                    setText(strategy.getStrategyName());
                 }
             }
         });
 
-        comboBoxStrategies.setConverter(new StringConverter<MoveStrategy>() {
+        comboBoxStrategies.setConverter(new StringConverter<ComputerStrategy>() {
             @Override
-            public String toString(MoveStrategy strategy) {
-                return strategy == null ? null : strategy.getIdentifier();
+            public String toString(ComputerStrategy computerStrategy) {
+                return computerStrategy == null ? null : computerStrategy.getStrategyName();
             }
 
             @Override
-            public MoveStrategy fromString(String string) {
+            public ComputerStrategy fromString(String string) {
                 return null;
             }
         });
     }
 
     public static void checkState() {
-        for (Combo combo : combos) {
-            if (combo.isComplete()) {
+        for (CheckResult checkResult : checkResults) {
+            if (checkResult.isComplete()) {
                 playable = false;
-                playWinAnimation(combo);
+                checkResult(checkResult);
                 return;
             }
         }
@@ -112,28 +104,13 @@ public class MainController implements Initializable {
         }
     }
 
-    private static void playWinAnimation(Combo combo) {
-        Line line = new Line();
-        line.setStrokeWidth(5);
-        line.setStyle("-fx-stroke: red;");
-        line.setStartX(combo.tiles[0].getCenterX());
-        line.setStartY(combo.tiles[0].getCenterY());
-        line.setEndX(combo.tiles[0].getCenterX());
-        line.setEndY(combo.tiles[0].getCenterY());
-
-        root.getChildren().add(line);
-
-        Timeline timeline = new Timeline();
-        timeline.getKeyFrames().add(new KeyFrame(Duration.seconds(1),
-                new KeyValue(line.endXProperty(), combo.tiles[4].getCenterX()),
-                new KeyValue(line.endYProperty(), combo.tiles[4].getCenterY())));
-        timeline.play();
-        if (combo.tiles[0].getValue().equals("X")) {
+    private static void checkResult(CheckResult checkResult) {
+        if (checkResult.fields[0].getSymbolValue().equals("X")) {
             customMessageBox.showMessageBox(Alert.AlertType.INFORMATION, "Informacja końcowa",
                     "Rozgrywka zakończona",
                     "Gracz wygrał z komputerem.").showAndWait();
         }
-        if (combo.tiles[0].getValue().equals("O")) {
+        if (checkResult.fields[0].getSymbolValue().equals("O")) {
             customMessageBox.showMessageBox(Alert.AlertType.INFORMATION, "Informacja końcowa",
                     "Rozgrywka zakończona",
                     "Komputer wygrał z graczem.").showAndWait();
@@ -149,43 +126,42 @@ public class MainController implements Initializable {
             }
         }
 
-        root.getChildren().clear();
-        gameManager.startNewGame();
+        gameManager.startGame();
     }
 
     public void comboBoxStrategies_onAction() {
-        gameManager.setEnemyMoveStrategy(comboBoxStrategies.getSelectionModel().getSelectedItem());
+        gameManager.setComputerStrategy(comboBoxStrategies.getSelectionModel().getSelectedItem());
     }
 
     private void initBoard() {
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < 5; j++) {
-                Tile tile = new Tile(i, j);
-                flowPaneGameBoard.getChildren().add(tile);
-                board[i][j] = tile;
+                Field field = new Field(i, j);
+                flowPaneGameBoard.getChildren().add(field);
+                board[i][j] = field;
             }
         }
 
         for (int y = 0; y < 5; y++) {
-            combos.add(new Combo(board[0][y], board[1][y], board[2][y], board[3][y], board[4][y]));
+            checkResults.add(new CheckResult(board[0][y], board[1][y], board[2][y], board[3][y], board[4][y]));
         }
 
         for (int x = 0; x < 5; x++) {
-            combos.add(new Combo(board[x][0], board[x][1], board[x][2], board[x][3], board[x][4]));
+            checkResults.add(new CheckResult(board[x][0], board[x][1], board[x][2], board[x][3], board[x][4]));
         }
 
-        combos.add(new Combo(board[0][0], board[1][1], board[2][2], board[3][3], board[4][4]));
-        combos.add(new Combo(board[4][0], board[3][1], board[2][2], board[1][3], board[0][4]));
+        checkResults.add(new CheckResult(board[0][0], board[1][1], board[2][2], board[3][3], board[4][4]));
+        checkResults.add(new CheckResult(board[4][0], board[3][1], board[2][2], board[1][3], board[0][4]));
     }
 
-    private void loadFromDirectory(File directory) {
+    private void loadComputerStrategies(File directory) {
         File[] scriptFiles = directory.listFiles();
         System.out.println(Arrays.toString(scriptFiles));
         assert scriptFiles != null;
         computerStrategies = Stream.of(scriptFiles)
                 .map(file -> {
                     try {
-                        return mover.load(file);
+                        return getComputerStrategy(file);
                     } catch (FileNotFoundException | ScriptException e) {
                         customMessageBox.showMessageBox(Alert.AlertType.WARNING, "Ostrzeżenie",
                                 "Operacja odczytu strategii AI nie powiodła się.",
@@ -194,5 +170,12 @@ public class MainController implements Initializable {
                     return null;
                 })
                 .collect(Collectors.toList());
+    }
+
+    private ComputerStrategy getComputerStrategy(File file) throws FileNotFoundException, ScriptException {
+        ScriptEngine scriptEngine = new ScriptEngineManager().getEngineByName("nashorn");
+        scriptEngine.eval(new FileReader(file));
+
+        return (ComputerStrategy) ScriptUtils.convert(scriptEngine.eval("strategy"), ComputerStrategy.class);
     }
 }
